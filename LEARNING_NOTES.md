@@ -55,3 +55,32 @@
 - Define the complete contract for every endpoint.
 - Add examples of successful and unsuccessful requests.
 - Confirm that every business rule has at least one test scenario.
+
+
+## API Server Skeleton
+
+### What I built
+
+- Created a Node.js project for the local mock API.
+- Installed Express.
+- Added a GET /health endpoint.
+- Started the API on port 3000.
+- Sent a request to the API from PowerShell.
+
+### What I expected
+
+- I expected GET /health to return status 200.
+- I expected the response body to contain status UP.
+
+### What happened
+
+- The Express server started successfully.
+- PowerShell received the expected response.
+
+### What I learned
+
+- An API client sends an HTTP request to a server endpoint.
+- A route combines an HTTP method and a URL path.
+- Express converts the JavaScript object into JSON.
+- A port identifies the local process receiving the request.
+- The health endpoint confirms that the service is available.
