@@ -34,9 +34,9 @@
   ```
 ### Request Fields
 
-|   Field   |    Type   |  Required |  Discription                                   |
-|-----------|-----------|-----------|------------------------------------------------|
-|  name     |  String   |    Yes    |  Unique name used to identify the campaign     |
+|   Field    |    Type   |  Required |  Discription                                   |
+|------------|-----------|-----------|------------------------------------------------|
+|  name      |  String   |    Yes    |  Unique name used to identify the campaign     |
 |  channel   |  String   |    Yes    |  Communication channel usde by the campaign    |
 
 ### Validation Rules
@@ -45,6 +45,7 @@
    - name cannot be empty or contain whitespace.
    - name cannot exceed 100 characters.
    - Campaign names must be unique
+   - Campaign-name uniqueness is checked case-insensitively after trimming surrounding whitespace.
    - channel is required.
    - channel must be either EMAIL or SMS.
    - channel values are case-sensitive.
