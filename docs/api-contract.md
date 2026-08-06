@@ -111,3 +111,30 @@
          "message": "A Campaign with this name already exists"
       }
    ```
+
+
+## Reset Test Data - `POST /test/reset`
+
+Clears all campaigns stored by local test API and resets the next campaign ID to 1
+
+This endpoint exists only for local testing and must not be exposed in a production environment.
+
+### Request
+
+```http
+POST /test/reset
+```
+
+## Successful Response
+
+204 no content
+
+## Why use 204 no content?
+
+The request succeeds but the client does not need any data back.
+
+The important result is the server-side state change:
+
+```text
+campaigns become empty
+nextCampaignnId becomes 1

@@ -258,3 +258,12 @@
 - Add subscriber functionality and consent-related business rules.
 - Add Cucumber scenarios after the core API tests are stable.
 - Add GitHub Actions after the test suite runs reliably from the command line.
+
+
+## Reset Campaigs Data
+
+###what I learned
+
+- BeforeEach is used before every @Test method
+- JUnit does not guarantee that tests will always run in the order they appear in your file. So test should not depend on the execcution order.
+- 

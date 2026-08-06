@@ -122,6 +122,14 @@ app.get("/campaigns/:id", (request, response) => {
     return response.status(200).json(campaign);
 });
 
+app.post("/test/reset", (request, response) => {
+    // Reset the in-memory storage and next campaign ID.
+    campaigns.length = 0;
+    nextCampaignId = 1;
+
+    return response.status(204).send();
+});
+
 app.listen(PORT, () => {
     console.log(`Marketing Campaign API running on http://localhost:${PORT}`);
 });
