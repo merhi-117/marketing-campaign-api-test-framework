@@ -34,9 +34,9 @@
   ```
 ### Request Fields
 
-|   Field   |    Type   |  Required |  Discription                                   |
-|-----------|-----------|-----------|------------------------------------------------|
-|  name     |  String   |    Yes    |  Unique name used to identify the campaign     |
+|   Field    |    Type   |  Required |  Discription                                   |
+|------------|-----------|-----------|------------------------------------------------|
+|  name      |  String   |    Yes    |  Unique name used to identify the campaign     |
 |  channel   |  String   |    Yes    |  Communication channel usde by the campaign    |
 
 ### Validation Rules
@@ -45,6 +45,7 @@
    - name cannot be empty or contain whitespace.
    - name cannot exceed 100 characters.
    - Campaign names must be unique
+   - Campaign-name uniqueness is checked case-insensitively after trimming surrounding whitespace.
    - channel is required.
    - channel must be either EMAIL or SMS.
    - channel values are case-sensitive.
@@ -110,3 +111,121 @@
          "message": "A Campaign with this name already exists"
       }
    ```
+
+
+## Reset Test Data - `POST /test/reset`
+
+Clears all campaigns stored by local test API and resets the next campaign ID to 1
+
+This endpoint exists only for local testing and must not be exposed in a production environment.
+
+### Request
+
+```http
+POST /test/reset
+```
+
+## Successful Response
+
+204 no content
+
+## Why use 204 no content?
+
+The request succeeds but the client does not need any data back.
+
+The important result is the server-side state change:
+
+```text
+campaigns become empty
+nextCampaignnId becomes 1
+
+## Retrieve All Campaigns — `GET /campaigns`
+
+Return all campaigns currently stored by the API.
+
+### Request
+
+```http
+GET/campaigns
+
+## Successful Response
+
+200 OK
+content-Type: application/json
+
+[
+  {
+    "id": 1,
+    "name": "Summer Campaign",
+    "channel": "EMAIL",
+    "status": "DRAFT"
+  },
+  {
+    "id": 2,
+    "name": "SMS Promotion",
+    "channel": "SMS",
+    "status": "DRAFT"
+  }
+]
+
+if no campaigns exist, the API returns:
+
+[]
+
+not
+
+404
+
+Since the collection exists, but contains zero records.
+
+
+## Change Campaign Status — `PATCH /campaigns/{id}/status`
+
+Updates the lifecycle status of an existing campaign.
+
+### Request
+
+```http
+PATCH /campaigns/1/status
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
+}
+```
+### Allowed Status Values
+
+- DRAFT
+- ACTIVE
+- PAUSED
+- COMPLETED
+
+### Transition Rules
+
+|  Current Status | Allowed Next Status|
+|-----------------|--------------------|
+|     DRAFT       |        ACTIVE      |
+|     ACTIVE      |  PAUSED, COMPLETED |
+|     PAUSED      |  ACTIVE, COMPLETED |
+|    COMPLETED    |        None        |
+
+Requesting the campaign's current status is allowed and does not change the resource.
+
+## Successful Response
+
+200 ok
+
+{
+  "id": 1,
+  "name": "Summer Campaign",
+  "channel": "EMAIL",
+  "status": "ACTIVE"
+}
+
+## Errors
+
+- 400 — Invalid campaigns ID
+- 400 — Missing status
+- 400 — Unsupported status value
+- 404 — Campaign does not exist
+- 409 — Request transition is not allowed
