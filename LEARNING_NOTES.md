@@ -211,59 +211,213 @@
 
 ---
 
-## 7. Current Project Status
+---
+
+## 9. Test Isolation and Reusable REST Assured Setup
+
+### What I built
+
+- Added a local `POST /test/reset` endpoint.
+- Used JUnit `@BeforeEach` so every automated test starts from a clean state.
+- Reset the in-memory campaign list before each test.
+- Reset `nextCampaignId` so IDs are predictable.
+- Removed the need to generate campaign names with timestamps.
+- Created a reusable `BaseApiTest`.
+- Created a reusable REST Assured `RequestSpecification`.
+- Moved the common base URI, JSON content type, JSON accept header, reset logic, and campaign-creation helper into the base class.
+- Refactored campaign creation and lookup test classes to inherit from `BaseApiTest`.
+
+### What I learned
+
+- `@BeforeEach` runs before every JUnit `@Test` method.
+- Tests should not depend on execution order because JUnit does not guarantee that tests run in the same order they appear in the source file.
+- Test isolation means every test begins from a predictable state and does not depend on data left by another test.
+- Resetting test data makes automated tests deterministic and repeatable.
+- A reusable REST Assured `RequestSpecification` prevents repeated configuration in every test.
+- Refactoring should improve the structure of the test framework without changing the externally observable API behaviour.
+- Inheritance can be useful in a test framework when child test classes genuinely share setup and helper behaviour.
+
+---
+
+## 10. Campaign Listing
+
+### What I built
+
+- Implemented `GET /campaigns`.
+- Defined that an empty collection returns `200 OK` with `[]` rather than `404 Not Found`.
+- Manually tested the endpoint with zero campaigns and multiple campaigns.
+- Added automated tests for:
+  - An empty campaign list.
+  - Returning all created campaigns.
+
+### What I learned
+
+- A collection endpoint can exist successfully even when it contains no resources.
+- `200 OK` with an empty array communicates that the collection exists but currently has no items.
+- REST Assured can validate the size of a JSON array and values contained in objects inside the array.
+- Test setup should create only the data needed by a specific test.
+
+---
+
+## 11. Campaign Status Lifecycle
+
+### What I built
+
+- Implemented `PATCH /campaigns/{id}/status`.
+- Defined the supported statuses:
+  - `DRAFT`
+  - `ACTIVE`
+  - `PAUSED`
+  - `COMPLETED`
+- Added lifecycle transition rules.
+- Manually tested successful status changes and invalid transitions.
+- Created `CampaignStatusTest` to automate status-related scenarios.
+
+### Transition Rules
+
+| Current Status | Allowed Next Status  |
+|----------------|----------------------|
+|    `DRAFT`     |      `ACTIVE`        |
+|    `ACTIVE`    | `PAUSED`, `COMPLETED`|
+|    `PAUSED`    | `ACTIVE`, `COMPLETED`|
+|   `COMPLETED`  |         None         |
+
+### What I learned
+
+- A field value can be valid while a requested state transition is still invalid.
+- An unsupported status such as `UNKNOWN` is a `400 Bad Request`.
+- A transition such as `DRAFT -> COMPLETED` can be a `409 Conflict` because `COMPLETED` is a valid status but conflicts with the resource's current state and lifecycle rules.
+- State-transition testing is an example of testing business logic rather than only checking HTTP syntax.
+- A completed campaign is treated as a final state and cannot be reactivated.
+
+---
+
+## 12. Debugging the Status Tests
+
+### What failed
+
+The REST Assured campaign-status tests initially failed even though the PATCH endpoint worked manually.
+
+The failures included:
+
+- Expected `200`, `400`, or `409` responses but receiving `404`.
+- Express reporting `Cannot PUT /campaigns/{id}/status`.
+- Error-response tests trying to assert a `status` field that did not exist.
+
+### Root Cause 1 — Wrong HTTP Method
+
+The API contract and Express server used:
+
+```text
+PATCH /campaigns/{id}/status
+```
+
+but the Java helper used:
+
+```java
+.put("/campaigns/{id}/status")
+```
+
+`PUT` and `PATCH` are different HTTP methods and therefore different routes.
+
+The helper needed to use:
+
+```java
+.patch("/campaigns/{id}/status")
+```
+
+### Root Cause 2 — Helper Was Making Assertions
+
+The original reusable helper always asserted:
+
+```java
+.body("status", equalTo(newStatus))
+```
+
+This worked only for successful responses.
+
+Error responses instead contained fields such as:
+
+```json
+{
+  "errorCode": "CAMPAIGN_NOT_FOUND",
+  "message": "Campaign with ID 999 was not found"
+}
+```
+
+They did not contain a `status` field.
+
+### What I changed
+
+- Changed the status request from `PUT` to `PATCH`.
+- Refactored `updateStatus()` so it performs the HTTP request and returns the REST Assured `Response`.
+- Moved assertions into individual test methods.
+- Successful tests assert the updated campaign `status`.
+- Failure tests assert the appropriate `errorCode`, message, and HTTP status.
+- The HTTP method is part of an API endpoint's contract. The same URL with different methods represents different operations.
+- A reusable helper should usually perform a shared action without assuming that every response has the same structure.
+- The individual test should own assertions that describe the expected behaviour for that particular scenario.
+- Failure output can reveal whether the defect is in the application or in the test code itself.
+- Manual testing is valuable for isolating whether an endpoint works before debugging automation around it.
+
+---
+
+## 13. Current Project Status
 
 ### Completed
 
 - Initial API contract
-- Local Express server
+- Local Express test API
 - Health endpoint
 - In-memory campaign storage
 - Campaign creation
 - Campaign validation
-- Duplicate detection
+- Duplicate-name detection
 - Campaign lookup by ID
-- Manual positive and negative API testing
-- Maven configuration
-- First JUnit and REST Assured test
-- Deliberate test failure and recovery
-- Feature-branch workflow and GitHub push
-
-### Not completed yet
-
 - `GET /campaigns`
 - `PATCH /campaigns/{id}/status`
-- Subscriber endpoints
+- Campaign lifecycle transition rules
 - `/test/reset`
-- Automated negative campaign tests
-- Automated campaign lookup tests
-- Reusable REST Assured configuration
-- Request and response model classes
-- Cucumber/BDD scenarios
-- GitHub Actions
-- WireMock
-- Accessibility and Salesforce Marketing Cloud study
+- Manual positive and negative API testing
+- Java 21 and Maven configuration
+- JUnit and REST Assured tests
+- Automated positive campaign-creation tests
+- Automated negative campaign-creation tests
+- Automated lookup tests
+- Automated list tests
+- Campaign status test class
+- Reusable `BaseApiTest`
+- Reusable REST Assured `RequestSpecification`
+- Test isolation with `@BeforeEach`
+- Feature-branch Git/GitHub workflow
+- Debugging incorrect REST Assured HTTP methods and response assertions
+
+### Remaining for the Core Framework
+
+- Confirm the complete automated suite passes after the status-test fixes.
+- Review Git changes before committing.
+- Commit and push the final campaign feature work.
+- Open a GitHub pull request.
+- Review the pull request.
+- Merge `feature/campaign-endpoints` into `main`.
+- Synchronize local `main`.
+- Improve the project README.
+- Complete the remaining subscriber API contract and endpoints in a later stage.
+- Add Cucumber/BDD.
+- Add GitHub Actions.
+- Add WireMock/service virtualization.
 
 ---
 
-## 8. Next Improvements
+## 14. Key Framework Lessons So Far
 
-- Add `/test/reset` so tests begin with predictable data.
-- Add REST Assured tests for invalid campaign requests.
-- Add tests for duplicate campaign names.
-- Add tests for campaign lookup, invalid IDs, and missing campaigns.
-- Refactor repeated REST Assured setup into reusable configuration.
-- Separate test data, API client methods, and assertions as the framework grows.
-- Complete the remaining endpoint contracts.
-- Add subscriber functionality and consent-related business rules.
-- Add Cucumber scenarios after the core API tests are stable.
-- Add GitHub Actions after the test suite runs reliably from the command line.
-
-
-## Reset Campaigs Data
-
-###what I learned
-
-- BeforeEach is used before every @Test method
-- JUnit does not guarantee that tests will always run in the order they appear in your file. So test should not depend on the execcution order.
-- 
+- Design the API contract before automating it.
+- Translate business rules into positive and negative test scenarios.
+- Test the API manually before automating complex behaviour.
+- Keep tests isolated from one another.
+- Use reusable framework components only after duplication becomes clear.
+- Keep common request configuration in a reusable request specification.
+- Keep helpers focused on performing actions and let tests own scenario-specific assertions.
+- Verify both successful and unsuccessful responses.
+- Treat HTTP methods, status codes, request bodies, and response schemas as part of the API contract.
+- Use failing tests as diagnostic evidence rather than treating every failure as an application defect.

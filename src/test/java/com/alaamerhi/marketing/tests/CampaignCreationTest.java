@@ -1,9 +1,7 @@
 package com.alaamerhi.marketing.tests;
 
 import com.alaamerhi.marketing.base.BaseApiTest;
-import io.restassured.response.Response;
 import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
